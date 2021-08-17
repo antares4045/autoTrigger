@@ -77,8 +77,6 @@ def mainLoop(shell,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgr
                         if isGood:
                             Thread(target=lambda:beholder.writeLine(shot)).start()
                             break
-                # else:
-                #     sleep(0.001)
                     
     except Exception as error:
         playSound(sound_error)
