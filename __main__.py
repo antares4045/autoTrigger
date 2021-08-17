@@ -1,15 +1,12 @@
 from gui.MainShell import MainShell
 
-from PyQt5.QtGui import QColor
 from PyQt5 import QtWidgets
 import sys
-
-EXE_NAME = 'PortalWars-Win64-Shipping.exe'
 
 
 app = QtWidgets.QApplication(sys.argv)
 
-w = MainShell(  exe_name=EXE_NAME, 
+w = MainShell(  exe_name='PortalWars-Win64-Shipping.exe', 
                 pause_hotkey=["7"],
                 closeProgramm_hotey=["CTRL", "HOME"],
                 rect={"x":930, "y":510, "width":30, "height":30},
