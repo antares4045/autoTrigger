@@ -5,8 +5,9 @@ from PyQt5.QtGui import QColor
 from threading import Thread
 from PyQt5.QtWidgets import QDialog
 import os
-from playsound import playsound
 from threading import Thread
+
+from utils.playsound import playsound
 
 from time import sleep
 from time import time
@@ -20,24 +21,29 @@ from utils.getHWND import getHWNDbyExeName as getWID
 
 CURRENT_DIRECTORY = os.path.dirname(__file__)
 
-SOUND_DIRECTORY = os.path.normpath("C:/Windows/Media/")
-sound_start = "Windows Unlock.wav"
-sound_pause = "Windows Proximity Notification.wav"
-sound_finish = "Windows Message Nudge.wav"
-sound_error = "Windows Foreground.wav"
+SOUND_DIRECTORY = os.path.normpath(os.path.relpath(
+    os.path.join(
+        CURRENT_DIRECTORY, '../assets'
+    ), os.getcwd()))
+
+sound_start = "au.wav"
+sound_pause = "peep.wav"
+sound_finish = "beep.wav"
+sound_error = "bzzz.wav"
 
 
 
-def playSound(name):
-    Thread(target=playsound, args=(os.path.join(SOUND_DIRECTORY, name),)).start()
+def playSound(name, blocking=False):
+    playsound(os.path.join(SOUND_DIRECTORY, name), blocking=blocking)
+    #Thread(target=playsound, args=(),)).start()
 
-def mainLoop(shell,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgramm_hotey):
+def mainLoop(shell,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgram_hotkey,savePic):
     try:
         beholder = keyboardBeholder()
-        beholder.listen_list = list(set(pause_hotkey) | set(closeProgramm_hotey))
+        beholder.listen_list = list(set(pause_hotkey) | set(closeProgram_hotkey))
 
-        enbbleSwitch = beholder.namesToVK(pause_hotkey, finaliser=set)
-        offSwithch = beholder.namesToVK(closeProgramm_hotey, finaliser=set)
+        enableSwitch = beholder.namesToVK(pause_hotkey, finaliser=set)
+        offSwitch = beholder.namesToVK(closeProgram_hotkey, finaliser=set)
 
         shot = beholder.namesToVK(["LMB"])
         lasthotkeyTiming = time()
@@ -48,13 +54,13 @@ def mainLoop(shell,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgr
         while shell and shell.running:
             sleep(0.001)
             keys = beholder.namesToVK(beholder.getKeys().keys(), finaliser=set)
-            if not (offSwithch - keys):
-                playSound(sound_finish)
+            if not (offSwitch - keys):
+                playSound(sound_finish, blocking=True)
                 shell.running = False
                 shell.close()
                 shell = None
             else:
-                if not (enbbleSwitch - keys):
+                if not (enableSwitch - keys):
                     now = time()
                     if now - lasthotkeyTiming > HOTKEY_REPEAT_DELAY:
                         lasthotkeyTiming = now
@@ -70,7 +76,10 @@ def mainLoop(shell,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgr
                             playSound(sound_pause)
                 
                 if shell.beholderEnabled:
-                    img = screen.grabWindow(wid, **rect).toImage()
+                    pic = screen.grabWindow(wid, **rect)
+                    if savePic:
+                        pic.save('shot.jpg', 'jpg')
+                    img = pic.toImage()
                     for coord in points:
                         color = QColor(img.pixel(*coord)).getRgbF()
                         isGood = isGoodPixel(color)
@@ -89,13 +98,13 @@ def mainLoop(shell,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgr
 
 
 class MainShell(QWidget):
-    def __init__(self, exe_name, rect, points, isGoodPixel, pause_hotkey=["F1"],closeProgramm_hotey=["PAUSE_BREAK"],):
+    def __init__(self, exe_name, rect, points, isGoodPixel, pause_hotkey=["F1"],closeProgram_hotkey=["PAUSE_BREAK"],savePic=False):
         super().__init__()
     
         self.running = True
         self.beholderEnabled = False
         self.setBeholderEnabled(False)
-        self.beeholdThread = Thread(target=mainLoop, args=(self,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgramm_hotey))
+        self.beeholdThread = Thread(target=mainLoop, args=(self,exe_name, rect, points, isGoodPixel, pause_hotkey, closeProgram_hotkey, savePic))
         self.beeholdThread.start()
 
         layout = QVBoxLayout()
@@ -103,16 +112,16 @@ class MainShell(QWidget):
         texts = ["Окно длжно быть расположено на одном экране с игрой", 
         "Игра должна быть в оконном режиме",
         f"{'+'.join(pause_hotkey)} для включения/паузы", 
-        f"{'+'.join(closeProgramm_hotey)} для выключения"]
+        f"{'+'.join(closeProgram_hotkey)} для выключения"]
         
         for text in texts:
             label = QLabel()
             label.setText(text)
             layout.addWidget(label)
 
-        self.errorLablel = QLabel()
-        self.errorLablel.setStyleSheet("QLabel { color : red; }");
-        layout.addWidget(self.errorLablel)
+        self.errorLabel = QLabel()
+        self.errorLabel.setStyleSheet("QLabel { color : red; }");
+        layout.addWidget(self.errorLabel)
         self.setLayout(layout)
 
     def setBeholderEnabled(self, enabled) -> None:
@@ -123,4 +132,4 @@ class MainShell(QWidget):
         self.running = False
 
     def printError(self, text):
-        self.errorLablel.setText(text)
+        self.errorLabel.setText(text)
